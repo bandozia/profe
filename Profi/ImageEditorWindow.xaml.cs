@@ -15,6 +15,9 @@ using System.Text.RegularExpressions;
 using An.Helpers;
 using ImageMagick;
 using System.IO;
+using An.IO;
+using Profi.Controls;
+using Profi.Controls.Visuals;
 
 namespace Profi
 {
@@ -32,63 +35,45 @@ namespace Profi
             string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
             if (files != null)
             {
-                HandleFiles(files);
+                AddLayer(DropHandler.HandleFilesDrop(files), e.GetPosition(layersGrid));
                 return;
             }
 
             //Caso seja uma url arrastada do browser
             object dropedFromBrowser = e.Data.GetData(DataFormats.Html);
             if (dropedFromBrowser != null)
-            {                
-                HandleHTML(dropedFromBrowser, e.GetPosition(mainGrid));
+            {
+                LoadingSpiner loading = new LoadingSpiner { 
+                    Margin = new Thickness(e.GetPosition(layersGrid).X, e.GetPosition(layersGrid).Y, 0, 0) 
+                };
+                mainGrid.Children.Add(loading);
+                Task.Run(() =>
+                {
+                    byte[] imageBytes = DropHandler.GetImageBytes(dropedFromBrowser);
+                    Dispatcher.Invoke(() =>
+                    {
+                        AddLayer(DropHandler.HandleHtmlDrop(imageBytes), e.GetPosition(layersGrid));
+                        mainGrid.Children.Remove(loading);
+                    });
+                });    
             }                       
         }
-
-        private void HandleFiles(string[] files)
+        
+        private void AddLayer(Layer layer, Point position)
         {
-            //TODO: carregaar imagens de arquivo
+            layer.Margin = new Thickness(position.X, position.Y, 0, 0);
+            layersGrid.Children.Add(layer);
         }
 
-        private void HandleHTML(object htmlSource, Point pos)
+        private void AddLayer(List<Layer> layers, Point position)
         {
-            string source = null;
-            var match = Regex.Match(htmlSource.ToString(), "<img.+?src=[\"'](.+?)[\"'].*?>", RegexOptions.IgnoreCase);
-            if(match.Groups.Count > 1)
+            foreach (Layer layer in layers)
             {
-                source = match.Groups[1].Value;
-            }
-            
-            if (source.ToLower().Contains(";base64,"))
-            {
-                string[] b64Split = source.Split(',');
-                if (b64Split.Length == 2)
-                {
-                    byte[] imageBytes = Convert.FromBase64String(b64Split[1]);
-                    using (var imageFile = new FileStream("teste.png", FileMode.Create))
-                    {
-                        imageFile.Write(imageBytes, 0, imageBytes.Length);
-                        imageFile.Flush();
-                    }
-                }
-                else
-                {
-                    //TODO: tratar erro. deu ruim
-                }                                
-            }
-            else
-            {
-                Uri imageUri = source.ToImageUri();
-                if (imageUri != null)
-                {
-                    //TODO: socar na tela
-                    Console.WriteLine("sou imagem");
-                }
-                else
-                {
-                    //TODO: tratar erro. e uma url mas nao e imagem
-                }
+                AddLayer(layer, position);
             }
         }
+        
+                
 
     }
 }

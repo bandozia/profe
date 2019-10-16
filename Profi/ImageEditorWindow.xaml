@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:Profi"
         mc:Ignorable="d"
         Title="Profe | Imagens" Height="800" Width="1280" AllowDrop="True">
-    <Grid>
-        <Grid Name="mainGrid"  AllowDrop="true" />
+    <Grid Name="mainGrid">
+        <Grid Name="layersGrid"  AllowDrop="true" />
     </Grid>
 </Window>
